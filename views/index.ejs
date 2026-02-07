@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta charset="utf-8">
+      <title>Bike Controler</title>
+      <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+	   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+      <style>
+		 html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			background-color: #222;
+			font-family: Arial, sans-serif;
+		}
+		 
+		.BoldH {
+			font-weight: bold;
+			font-size: 24px;
+		}
+		
+		#phone {
+			width: 100%;
+			height: 100%;
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr;
+			grid-template-rows: auto 1fr 1fr;
+			gap: 5px;
+			padding: 5px;
+			box-sizing: border-box;
+		}
+		
+		.data-row {
+			grid-column: 1 / -1;
+			display: grid;
+			grid-template-columns: repeat(5, 1fr);
+			gap: 5px;
+		}
+		
+		.cell {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			background-color: #333;
+			border: 2px solid #555;
+			border-radius: 5px;
+			padding: 10px;
+			box-sizing: border-box;
+		}
+		
+		.data-cell {
+			background-color: #1a1a1a;
+			color: #0f0;
+		}
+		
+		.numbers {
+			font-weight: 900;
+			font-size: 60px;
+			color: #0f0;
+			line-height: 1;
+		}
+		
+		.unit {
+			font-size: 16px;
+			color: #0f0;
+			margin-top: 5px;
+		}
+		
+		button {
+		  width: 100%;
+		  height: 100%;
+		  background-color: #0066cc;
+		  color: white;
+		  font-size: 32px;
+		  font-weight: bold;
+		  border: 2px solid #0052a3;
+		  border-radius: 5px;
+		  cursor: pointer;
+		  transition: all 0.1s;
+		  min-height: 80px;
+		}
+		
+		button:hover {
+			background-color: #0080ff;
+		}
+		
+		button:active {
+			background-color: #00ff00;
+			color: #000;
+		}
+		
+		#mode {
+			background-color: #006600;
+			color: #0f0;
+			font-size: 50px;
+			font-weight: bold;
+			border: 3px solid #00ff00;
+			cursor: pointer;
+			min-height: 100px;
+			width: 100%;
+			height: 100%;
+		}
+		
+		#mode:hover {
+			background-color: #008800;
+			box-shadow: 0 0 15px #00ff00;
+		}
+		
+		.hidden {
+			visibility: hidden;
+		}
+		
+		/* Status banner */
+		#statusBanner {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			background-color: #ff4444;
+			color: white;
+			padding: 10px;
+			text-align: center;
+			font-weight: bold;
+			z-index: 1000;
+			display: none;
+		}
+		
+		#statusBanner.error {
+			background-color: #ff4444;
+		}
+		
+		#statusBanner.warning {
+			background-color: #ff8800;
+		}
+		
+		/* Status icons */
+		.status-bar {
+			position: fixed;
+			top: 5px;
+			right: 5px;
+			display: flex;
+			gap: 10px;
+			z-index: 1001;
+		}
+		
+		.status-icon {
+			width: 50px;
+			height: 50px;
+			border-radius: 50%;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			font-size: 24px;
+			font-weight: bold;
+			border: 3px solid #333;
+			background-color: #ff4444;
+			color: #fff;
+			box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+		}
+		
+		.status-icon.connected {
+			background-color: #00ff00;
+			color: #000;
+			border-color: #00aa00;
+		}
+		
+		.status-icon span {
+			font-size: 9px;
+			margin-top: 2px;
+		}
+      </style>
+      <script type="text/javascript">
+         var socket = io();
+         
+         socket.on('speed', function (data) {  
+			$('#speed').html(data);
+         });
+		 
+		 socket.on('targetPower', function (data) {  
+			$('#targetPower').html(Math.round(data));
+         });
+		 
+		 socket.on('simpower', function (data) {  
+			$('#targetPower').html(Math.round(data));
+         });
+		 
+		 socket.on('hr', function (data) {  
+			$('#heartrate').html(data);
+         });
+		 
+		 socket.on('power', function (data) {  
+			$('#power').html(data);
+         });
+		 
+		 socket.on('gear', function (data) {  
+			$('#gear').html(data);
+         });
+		 
+		 socket.on('windspeed', function (data) {  
+			$('#windspeed').html(data);
+         });
+		 
+		 socket.on('grade', function (data) {  
+			$('#grade').html(data);
+         });
+		 
+		 socket.on('windspeed', function (data) {  
+			$('#windspeed').html(data);
+         });
+		 
+		 socket.on('grade', function (data) {  
+			$('#grade').html(data);
+         });
+		 
+		 socket.on('mode', function (data) {  
+			$('#mode').html(data);
+			
+			// Replace entire cell content based on mode
+			if (data === 'SIM') {
+				// SIM mode: replace power controls with gear controls
+				$('#cellLeft').html('<button data-value="GearDn" id="gearDown" class="control-btn">- Gear</button>');
+				$('#cellRight').html('<button data-value="GearUp" id="gearUp" class="control-btn">+ Gear</button>');
+				
+				// Re-attach click handlers to new buttons
+				$('#gearDown').click(function(){
+					socket.emit('key', $(this).attr("data-value"));
+					return false;
+				});
+				$('#gearUp').click(function(){
+					socket.emit('key', $(this).attr("data-value"));
+					return false;
+				});
+			} else {
+				// ERG mode: replace gear controls with power controls
+				$('#cellLeft').html('<button data-value="PowerDn" id="keyLeft" class="control-btn">- Pwr</button>');
+				$('#cellRight').html('<button data-value="PowerUp" id="keyRight" class="control-btn">+ Pwr</button>');
+				
+				// Re-attach click handlers to new buttons
+				$('#keyLeft').click(function(){
+					socket.emit('key', $(this).attr("data-value"));
+					return false;
+				});
+				$('#keyRight').click(function(){
+					socket.emit('key', $(this).attr("data-value"));
+					return false;
+				});
+			}
+         });
+		 
+		 // Initialize status variables
+		 var usbConnected = false;
+		 var bleEnabled = false;
+		 var usbError = 'Bike not connected';
+		 var bleError = null;
+		 
+		 // Status handlers
+		 socket.on('usbStatus', function (status) {
+			console.log('USB Status:', status);
+			usbConnected = status.connected;
+			usbError = status.error;
+			
+			// Update icon
+			if (status.connected) {
+				$('#usbIcon').addClass('connected').attr('title', 'USB Connected');
+			} else {
+				$('#usbIcon').removeClass('connected').attr('title', status.error || 'USB Disconnected');
+			}
+			
+			updateStatusBanner();
+		 });
+		 
+		 socket.on('bleStatus', function (status) {
+			console.log('BLE Status:', status);
+			bleEnabled = status.enabled;
+			bleError = status.error;
+			
+			// Update icon
+			if (status.enabled) {
+				$('#bleIcon').addClass('connected').attr('title', 'Bluetooth Enabled');
+			} else {
+				$('#bleIcon').removeClass('connected').attr('title', status.error || 'Bluetooth Disabled');
+			}
+			
+			updateStatusBanner();
+		 });
+		 
+		 function updateStatusBanner() {
+			var messages = [];
+			
+			if (!usbConnected && usbError) {
+				messages.push(usbError);
+			}
+			
+			if (!bleEnabled && bleError) {
+				messages.push(bleError);
+			}
+			
+			if (messages.length > 0) {
+				$('#statusBanner').text(messages.join(' | ')).show();
+			} else {
+				$('#statusBanner').hide();
+			}
+		 }
+		 
+		 $(function () {
+			 $('button').click(function(){
+				socket.emit('key', $(this).attr("data-value"));
+				return false;
+			 });
+			 
+			 // Mode switcher - click on mode display to toggle
+			 $('#mode').click(function(){
+				var currentMode = $(this).html();
+				var newMode = currentMode === 'ERG' ? 'SIM' : 'ERG';
+				socket.emit('mode', newMode);
+			 });
+			 
+			 // Make mode clickable
+			 $('#mode').css('cursor', 'pointer');
+			 $('#mode').css('padding', '10px');
+		 });
+      </script>
+   </head>
+   <body>
+  
+<div class="status-bar">
+	<div class="status-icon" id="bleIcon" title="Bluetooth Disabled">
+		BT<span>BLE</span>
+	</div>
+	<div class="status-icon" id="usbIcon" title="USB Disconnected">
+		🔌<span>USB</span>
+	</div>
+</div>
+
+<div id="statusBanner" class="error"></div>
+
+<div id="dialog" title="Basic dialog">
+</div>
+
+<div id="phone">
+	<!-- ROW 1: Data (Speed, Power, HR, Wind, Grade) - All visible always -->
+	<div class="data-row">
+		<div class="cell data-cell"> 
+			<div class="BoldH">Speed</div>
+			<div class="numbers" id="speed">0</div>
+			<div class="unit">km/h</div>
+		</div>
+		<div class="cell data-cell">
+			<div class="BoldH">Power</div>
+			<div class="numbers" id="power">0</div>
+			<div class="unit">W</div>
+		</div>
+		<div class="cell data-cell">
+			<div class="BoldH">HR</div>
+			<div class="numbers" id="hr">0</div>
+			<div class="unit">bpm</div>
+		</div>
+		<div class="cell data-cell">
+			<div class="BoldH">Wind</div>
+			<div class="numbers" id="windspeed">0</div>
+			<div class="unit">km/h</div>
+		</div>
+		<div class="cell data-cell">
+			<div class="BoldH">Grade</div>
+			<div class="numbers" id="grade">0</div>
+			<div class="unit">%</div>
+		</div>
+	</div>
+	
+	<!-- ROW 2: Control Left | MODE | Control Right -->
+	<!-- Grid Cell 1 (left): -Power (ERG) or -Gear (SIM) -->
+	<div class="cell" id="cellLeft">
+		<button data-value="PowerDn" id="keyLeft" class="control-btn">- Pwr</button>
+	</div>
+	
+	<!-- Grid Cell 2 (center): MODE -->
+	<div class="cell" style="background-color: #000; border: 3px solid #00ff00;"> 
+		<button id="mode" style="border: none; background-color: #006600;">ERG</button>   
+	</div>
+	
+	<!-- Grid Cell 3 (right): +Power (ERG) or +Gear (SIM) -->
+	<div class="cell" id="cellRight">
+		<button data-value="PowerUp" id="keyRight" class="control-btn">+ Pwr</button>
+	</div>
+	
+	<!-- ROW 3: Gear | Pause | Target Power -->
+	<div class="cell data-cell"> 
+		<div class="BoldH">Gear</div>
+		<div class="numbers" id="gear">1</div>   
+	</div>
+	<div class="cell">
+		<button data-value="pause" id="pauseBtn">PAUSE</button>
+	</div>
+	<div class="cell data-cell">
+		<div class="BoldH">Target</div>
+		<div class="numbers" id="targetPower">100</div>
+		<div class="unit">W</div>
+	</div>
+</div>
+   
+   </body>
+</html>
