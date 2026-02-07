@@ -99,7 +99,7 @@ exit
 From your computer (not the Pi):
 ```bash
 # Copy the project to your Pi
-git clone 
+git clone https://github.com/hypdal/kettler-racer9-ftms
 
 ```
 
